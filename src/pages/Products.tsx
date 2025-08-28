@@ -11,6 +11,16 @@ const Products = () => {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
 
+  // Modal yopilgandan so'ng inputlar blokdan chiqsin
+  useEffect(() => {
+    if (!isModalOpen) {
+      const elements = document.querySelectorAll('input, select, textarea, button');
+      elements.forEach((el) => {
+        (el as HTMLInputElement | HTMLButtonElement).disabled = false;
+      });
+    }
+  }, [isModalOpen]);
+
   const fetchProducts = async () => {
     const productList = await window.api.getProducts();
     setProducts(productList);
