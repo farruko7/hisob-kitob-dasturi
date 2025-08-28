@@ -26,12 +26,25 @@ const Products = () => {
     setEditingProduct(null);
   };
 
+  const closeModal = () => {
+    setIsModalOpen(false);
+    resetForm();
+  };
+
   useEffect(() => {
-    return () => {
-      setIsModalOpen(false);
-      resetForm();
-    };
+    return () => closeModal();
   }, []);
+
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isModalOpen]);
 
   const handleAddNew = () => {
     resetForm();
@@ -65,8 +78,7 @@ const Products = () => {
     }
     
     fetchProducts();
-    setIsModalOpen(false);
-    resetForm();
+    closeModal();
   };
 
   return (
@@ -104,7 +116,7 @@ const Products = () => {
                 />
               </div>
               <div className="flex justify-end gap-4 pt-4">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="bg-gray-200 px-4 py-2 rounded-md hover:bg-gray-300">
+                <button type="button" onClick={closeModal} className="bg-gray-200 px-4 py-2 rounded-md hover:bg-gray-300">
                   Bekor qilish
                 </button>
                 <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
