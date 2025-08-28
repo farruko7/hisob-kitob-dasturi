@@ -39,6 +39,13 @@ const Clients = () => {
     setEditingClient(null);
   };
 
+  useEffect(() => {
+    return () => {
+      setIsModalOpen(false);
+      resetForm();
+    };
+  }, []);
+
   // Yangi mijoz qo'shish oynasini ochish
   const handleAddNew = () => {
     resetForm();
