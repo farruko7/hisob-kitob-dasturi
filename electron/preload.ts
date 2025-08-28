@@ -44,7 +44,8 @@ const api = {
   getTransactions: (filters: { startDate: string, endDate: string }) => ipcRenderer.invoke('get-transactions', filters),
   getSalesReport: (filters: { startDate: string, endDate: string }) => ipcRenderer.invoke('get-sales-report', filters),
   getTodaysFinancialSummary: () => ipcRenderer.invoke('get-todays-financial-summary'),
-  exportData: () => ipcRenderer.invoke('export-data'),
+  exportData: (format: 'excel' | 'pdf' | 'word', period: 'daily' | 'weekly' | 'monthly') =>
+    ipcRenderer.invoke('export-data', { format, period }),
 
   // Settings
   resetDatabase: () => ipcRenderer.invoke('reset-database'),
