@@ -18,7 +18,9 @@ import {
   getTransactions,
   getSalesReport,
   exportDataToExcel,
-  getTodaysFinancialSummary
+  getDataForPeriod,
+  getTodaysFinancialSummary,
+  resetDatabase
 } from './database';
 
 process.env.DIST = path.join(__dirname, '../dist');
@@ -86,13 +88,46 @@ ipcMain.handle('get-financial-summary', async () => await getFinancialSummary())
 ipcMain.handle('get-transactions', async (event, filters) => await getTransactions(filters));
 ipcMain.handle('get-sales-report', async (event, filters) => await getSalesReport(filters));
 ipcMain.handle('get-todays-financial-summary', async () => await getTodaysFinancialSummary());
-ipcMain.handle('export-data', async () => {
+ipcMain.handle('reset-database', async () => await resetDatabase());
+
+function generatePDFBuffer(content: string) {
+  const safe = content.replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  const pdf = `%PDF-1.1\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n4 0 obj\n<< /Length ${safe.length + 33} >>\nstream\nBT /F1 12 Tf 72 720 Td (${safe}) Tj ET\nendstream\nendobj\n5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\nxref\n0 6\n0000000000 65535 f \n0000000010 00000 n \n0000000061 00000 n \n0000000116 00000 n \n0000000225 00000 n \n0000000334 00000 n \ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n409\n%%EOF`;
+  return Buffer.from(pdf);
+}
+
+function generateWordBuffer(content: string) {
+  const html = `<html><head><meta charset="utf-8"></head><body><pre>${content}</pre></body></html>`;
+  return Buffer.from(html, 'utf-8');
+}
+
+ipcMain.handle('export-data', async (event, { format, period }) => {
   try {
-    const buffer = await exportDataToExcel();
+    const data = await getDataForPeriod(period);
+    let buffer: Buffer;
+    let filters;
+    let ext;
+    if (format === 'excel') {
+      buffer = await exportDataToExcel(period);
+      filters = [{ name: 'Excel Files', extensions: ['xlsx'] }];
+      ext = 'xlsx';
+    } else {
+      const json = JSON.stringify(data, null, 2);
+      if (format === 'pdf') {
+        buffer = generatePDFBuffer(json);
+        filters = [{ name: 'PDF Files', extensions: ['pdf'] }];
+        ext = 'pdf';
+      } else {
+        buffer = generateWordBuffer(json);
+        filters = [{ name: 'Word Files', extensions: ['doc'] }];
+        ext = 'doc';
+      }
+    }
+
     const { filePath } = await dialog.showSaveDialog({
-      title: 'Excel faylni saqlash',
-      defaultPath: `hisobot-${new Date().toISOString().split('T')[0]}.xlsx`,
-      filters: [{ name: 'Excel Files', extensions: ['xlsx'] }]
+      title: 'Hisobotni saqlash',
+      defaultPath: `hisobot-${period}-${new Date().toISOString().split('T')[0]}.${ext}`,
+      filters,
     });
     if (filePath) {
       fs.writeFileSync(filePath, buffer);
