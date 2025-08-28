@@ -21857,6 +21857,17 @@ var utils = {
   sheet_to_json,
   sheet_to_html,
   sheet_to_formulae,
+async function resetDatabase() {
+  try {
+    await db.read();
+    db.data = { ...defaultData };
+    await db.write();
+    return { success: true, message: "Ma'lumotlar bazasi tozalandi" };
+  } catch (error) {
+    console.error(error);
+    return { success: false, message: error.message };
+  }
+}
   sheet_to_row_object_array: sheet_to_json,
   sheet_get_cell: ws_get_cell_stub,
   book_new,
@@ -22202,6 +22213,7 @@ electron.ipcMain.handle("add-client", async (event, client) => await addClient(c
 electron.ipcMain.handle("update-client", async (event, { id, data }) => await updateClient(id, data));
 electron.ipcMain.handle("delete-client", async (event, id) => await deleteClient(id));
 electron.ipcMain.handle("get-products", async () => await getProducts());
+electron.ipcMain.handle("reset-database", async () => await resetDatabase());
 electron.ipcMain.handle("add-product", async (event, product) => await addProduct(product));
 electron.ipcMain.handle("update-product", async (event, { id, data }) => await updateProduct(id, data));
 electron.ipcMain.handle("delete-product", async (event, id) => await deleteProduct(id));

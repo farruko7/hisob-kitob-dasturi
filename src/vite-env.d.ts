@@ -44,7 +44,10 @@ interface Window {
     getTransactions: (filters: { startDate: string; endDate: string; }) => Promise<{ date: string; type: string; description: string; amount: number; }[]>;
     getSalesReport: (filters: { startDate: string; endDate: string; }) => Promise<{ name: string; totalQuantity: number; totalAmount: number; }[]>;
     getTodaysFinancialSummary: () => Promise<{ todayCashIn: number; todayCashOut: number; todayKassa: number; }>;
-    exportData: () => Promise<{ success: boolean; path?: string; message?: string }>;
+    exportData: (
+      format: 'excel' | 'pdf' | 'word',
+      period: 'daily' | 'weekly' | 'monthly'
+    ) => Promise<{ success: boolean; path?: string; message?: string }>;
 
     // Settings
     resetDatabase: () => Promise<{ success: boolean; message?: string }>;
