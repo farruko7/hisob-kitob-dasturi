@@ -20,6 +20,16 @@ const Clients = () => {
   const [address, setAddress] = useState('');
   const [initialDebt, setInitialDebt] = useState('');
 
+  // Modal yopilgandan keyin inputlar yana yoziladigan bo'lsin
+  useEffect(() => {
+    if (!isModalOpen) {
+      const elements = document.querySelectorAll('input, select, textarea, button');
+      elements.forEach((el) => {
+        (el as HTMLInputElement | HTMLButtonElement).disabled = false;
+      });
+    }
+  }, [isModalOpen]);
+
   // Mijozlar ro'yxatini bazadan yuklash
   const fetchClients = async () => {
     const clientList = await window.api.getClients();
