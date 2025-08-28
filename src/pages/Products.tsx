@@ -26,6 +26,13 @@ const Products = () => {
     setEditingProduct(null);
   };
 
+  useEffect(() => {
+    return () => {
+      setIsModalOpen(false);
+      resetForm();
+    };
+  }, []);
+
   const handleAddNew = () => {
     resetForm();
     setIsModalOpen(true);
