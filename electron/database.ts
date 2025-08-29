@@ -26,6 +26,12 @@ const db = new Low(adapter, defaultData);
 
 export async function initializeDatabase() { await db.read(); db.data = { ...defaultData, ...db.data }; await db.write(); console.log(`✅ Ma'lumotlar bazasi muvaffaqiyatli ishga tushdi va yangilandi: ${dbPath}`); }
 
+export async function resetDatabase() {
+  await db.read();
+  db.data = { ...defaultData };
+  await db.write();
+}
+
 // Umumiy o'chirish funksiyasi
 async function deleteItemById<T extends { id: number }>(tableName: keyof Schema, id: number) {
   await db.read();

@@ -18,7 +18,8 @@ import {
   getTransactions,
   getSalesReport,
   exportDataToExcel,
-  getTodaysFinancialSummary
+  getTodaysFinancialSummary,
+  resetDatabase
 } from './database';
 
 process.env.DIST = path.join(__dirname, '../dist');
@@ -86,6 +87,15 @@ ipcMain.handle('get-financial-summary', async () => await getFinancialSummary())
 ipcMain.handle('get-transactions', async (event, filters) => await getTransactions(filters));
 ipcMain.handle('get-sales-report', async (event, filters) => await getSalesReport(filters));
 ipcMain.handle('get-todays-financial-summary', async () => await getTodaysFinancialSummary());
+ipcMain.handle('reset-database', async () => {
+  try {
+    await resetDatabase();
+    return { success: true, message: "Ma'lumotlar bazasi tozalandi" };
+  } catch (error) {
+    console.error(error);
+    return { success: false, message: (error as Error).message };
+  }
+});
 ipcMain.handle('export-data', async () => {
   try {
     const buffer = await exportDataToExcel();
