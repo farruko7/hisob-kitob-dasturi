@@ -26,6 +26,56 @@ const db = new Low(adapter, defaultData);
 
 export async function initializeDatabase() { await db.read(); db.data = { ...defaultData, ...db.data }; await db.write(); console.log(`✅ Ma'lumotlar bazasi muvaffaqiyatli ishga tushdi va yangilandi: ${dbPath}`); }
 
+export async function resetDatabase() {
+  await db.read();
+  db.data = { ...defaultData };
+  await db.write();
+}
+
+function getDateRange(period: 'daily' | 'weekly' | 'monthly') {
+  const end = new Date();
+  const start = new Date();
+  switch (period) {
+    case 'weekly':
+      start.setDate(end.getDate() - 6);
+      break;
+    case 'monthly':
+      start.setMonth(end.getMonth() - 1);
+      break;
+    default:
+      // daily
+      break;
+  }
+  start.setHours(0, 0, 0, 0);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+}
+
+function filterByRange<T>(items: T[] | undefined, key: keyof T, start: Date, end: Date) {
+  return (items || []).filter((item: any) => {
+    const d = new Date(item[key]);
+    return d >= start && d <= end;
+  });
+}
+
+export async function getDataForPeriod(period: 'daily' | 'weekly' | 'monthly') {
+  await db.read();
+  const { start, end } = getDateRange(period);
+  const data = db.data;
+  return {
+    clients: data.clients || [],
+    products: data.products || [],
+    sales: filterByRange(data.sales, 'sale_date', start, end),
+    payments: filterByRange(data.payments, 'payment_date', start, end),
+    expenses: filterByRange(data.expenses, 'expense_date', start, end),
+    suppliers: data.suppliers || [],
+    purchases: filterByRange(data.purchases, 'purchase_date', start, end),
+    supplier_payments: filterByRange(data.supplier_payments, 'payment_date', start, end),
+    employees: data.employees || [],
+    advances: filterByRange(data.advances, 'advance_date', start, end),
+  };
+}
+
 // Umumiy o'chirish funksiyasi
 async function deleteItemById<T extends { id: number }>(tableName: keyof Schema, id: number) {
   await db.read();
@@ -89,29 +139,28 @@ export async function getSalesReport(filters: { startDate: string, endDate: stri
 export async function getTodaysFinancialSummary() { await db.read(); const today = new Date().toISOString().split('T')[0]; const payments = (db.data.payments || []).filter(p => p.payment_date.startsWith(today)); const expenses = (db.data.expenses || []).filter(e => e.expense_date.startsWith(today)); const supplierPayments = (db.data.supplier_payments || []).filter(p => p.payment_date.startsWith(today)); const advances = (db.data.advances || []).filter(a => a.advance_date.startsWith(today)); const todayCashIn = payments.reduce((sum, p) => sum + p.amount, 0); const todayCashOut = expenses.reduce((sum, e) => sum + e.amount, 0) + supplierPayments.reduce((sum, p) => sum + p.amount, 0) + advances.reduce((sum, a) => sum + a.amount, 0); return { todayCashIn, todayCashOut, todayKassa: todayCashIn - todayCashOut, }; }
 
 // Excel Export
-export async function exportDataToExcel() {
-    await db.read();
-    const data = db.data;
+export async function exportDataToExcel(period: 'daily' | 'weekly' | 'monthly') {
+    const data = await getDataForPeriod(period);
     const workbook = xlsx.utils.book_new();
-    const clientsSheet = xlsx.utils.json_to_sheet(data.clients || []);
+    const clientsSheet = xlsx.utils.json_to_sheet(data.clients);
     xlsx.utils.book_append_sheet(workbook, clientsSheet, "Mijozlar");
-    const productsSheet = xlsx.utils.json_to_sheet(data.products || []);
+    const productsSheet = xlsx.utils.json_to_sheet(data.products);
     xlsx.utils.book_append_sheet(workbook, productsSheet, "Mahsulotlar");
-    const salesSheet = xlsx.utils.json_to_sheet(await getSales());
+    const salesSheet = xlsx.utils.json_to_sheet(data.sales);
     xlsx.utils.book_append_sheet(workbook, salesSheet, "Savdolar");
-    const paymentsSheet = xlsx.utils.json_to_sheet(await getPayments());
+    const paymentsSheet = xlsx.utils.json_to_sheet(data.payments);
     xlsx.utils.book_append_sheet(workbook, paymentsSheet, "Mijoz To'lovlari");
-    const expensesSheet = xlsx.utils.json_to_sheet(data.expenses || []);
+    const expensesSheet = xlsx.utils.json_to_sheet(data.expenses);
     xlsx.utils.book_append_sheet(workbook, expensesSheet, "Xarajatlar");
-    const suppliersSheet = xlsx.utils.json_to_sheet(data.suppliers || []);
+    const suppliersSheet = xlsx.utils.json_to_sheet(data.suppliers);
     xlsx.utils.book_append_sheet(workbook, suppliersSheet, "Chorvachilar");
-    const purchasesSheet = xlsx.utils.json_to_sheet(data.purchases || []);
+    const purchasesSheet = xlsx.utils.json_to_sheet(data.purchases);
     xlsx.utils.book_append_sheet(workbook, purchasesSheet, "Mol Xaridi");
-    const supplierPaymentsSheet = xlsx.utils.json_to_sheet(data.supplier_payments || []);
+    const supplierPaymentsSheet = xlsx.utils.json_to_sheet(data.supplier_payments);
     xlsx.utils.book_append_sheet(workbook, supplierPaymentsSheet, "Chorvachilarga To'lov");
-    const employeesSheet = xlsx.utils.json_to_sheet(data.employees || []);
+    const employeesSheet = xlsx.utils.json_to_sheet(data.employees);
     xlsx.utils.book_append_sheet(workbook, employeesSheet, "Xodimlar");
-    const advancesSheet = xlsx.utils.json_to_sheet(data.advances || []);
+    const advancesSheet = xlsx.utils.json_to_sheet(data.advances);
     xlsx.utils.book_append_sheet(workbook, advancesSheet, "Avanslar");
     const buffer = xlsx.write(workbook, { bookType: 'xlsx', type: 'buffer' });
     return buffer;
